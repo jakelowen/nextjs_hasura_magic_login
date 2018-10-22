@@ -49,7 +49,6 @@
     "dev": "nodemon -e js,graphql -x node --inspect index.js",
     "build": "next build",
     "start": "NODE_ENV=production node index.js",
-    "prisma_deploy": "prisma deploy -e variables.env",
     "storybook": "start-storybook -p 9001 -c .storybook"
   },
   "devDependencies": {
