@@ -12,7 +12,7 @@ const PleaseSignIn = props => (
     {({ data, loading, startPolling }) => {
       if (loading) return <p>Loading...</p>;
 
-      if (data.me) {
+      if (data && data.me) {
         return props.children;
       }
 

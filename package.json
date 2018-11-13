@@ -24,7 +24,6 @@
     "graphql": "^14.0.2",
     "graphql-tag": "^2.10.0",
     "graphql-tools": "^4.0.2",
-    "graphql-yoga": "^1.16.2",
     "jsonwebtoken": "^8.3.0",
     "knex": "^0.15.2",
     "lodash": "^4.17.11",
@@ -68,7 +67,8 @@
     "fs": "^0.0.1-security",
     "get-graphql-schema": "^2.1.1",
     "gql-tools": "^0.0.15",
-    "nodemon": "^1.18.4"
+    "nodemon": "^1.18.4",
+    "prettier": "^1.15.2"
   },
   "resolutions": {
     "graphql": "^14.0.2"

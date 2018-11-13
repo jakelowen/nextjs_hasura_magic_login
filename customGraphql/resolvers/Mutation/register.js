@@ -15,22 +15,22 @@ const register = async (parent, args, ctx) => {
           }
         */
 
-  console.log('!!! calling registration');
   // 1. Create user with provided arguments
   const [user] = await ctx
-    .db('users')
+    .db('lt_user')
     .insert({ name: args.name, email: args.email })
     .returning('*');
-
-  console.log('DB USER create', user);
 
   // 2. Set a reset token and expiry on that user
   const randomBytesPromiseified = promisify(randomBytes);
   const loginToken = (await randomBytesPromiseified(20)).toString('hex');
 
   await ctx
-    .db('users')
-    .update({ loginToken })
+    .db('lt_user')
+    .update({
+      login_token: loginToken,
+      login_token_expiry: ctx.db.raw(`now() + '24 HOUR'::INTERVAL`),
+    })
     .where({ email: args.email });
 
   const securityCode = generateSecurityCode();
@@ -44,7 +44,7 @@ const register = async (parent, args, ctx) => {
     to: user.email,
     subject: subject(),
     html: html(url, securityCode),
-    txt: text(url, securityCode),
+    text: text(url, securityCode),
   };
   await transport.sendMail(messageData);
 

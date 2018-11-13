@@ -7,7 +7,7 @@ const Mutations = {
   confirmLogin,
   register,
   signout(parent, args, ctx) {
-    ctx.response.clearCookie('token');
+    ctx.res.clearCookie('token');
     return {
       code: 'ok',
       success: true,

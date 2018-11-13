@@ -17,7 +17,7 @@ const requestLogin = async (parent, args, ctx) => {
 
   // 1. Check if this is a real user
   const user = await ctx
-    .db('users')
+    .db('lt_user')
     .where({ email: args.email })
     .first();
 
@@ -35,10 +35,10 @@ const requestLogin = async (parent, args, ctx) => {
   const loginToken = (await randomBytesPromiseified(20)).toString('hex');
 
   await ctx
-    .db('users')
+    .db('lt_user')
     .update({
-      loginToken,
-      loginTokenExpiry: ctx.db.raw(`now() + '24 HOUR'::INTERVAL`),
+      login_token: loginToken,
+      login_token_expiry: ctx.db.raw(`now() + '24 HOUR'::INTERVAL`),
     })
     .where({ email: args.email });
 
@@ -53,7 +53,7 @@ const requestLogin = async (parent, args, ctx) => {
     to: user.email,
     subject: subject(),
     html: html(url, securityCode),
-    txt: text(url, securityCode),
+    text: text(url, securityCode),
   };
   await transport.sendMail(messageData);
 

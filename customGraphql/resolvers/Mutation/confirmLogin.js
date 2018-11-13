@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const _ = require('lodash');
 
 const confirmLogin = async (parent, args, ctx) => {
   /*  Response target
@@ -9,17 +10,16 @@ const confirmLogin = async (parent, args, ctx) => {
             user: User
         }
     */
-
   const user = await ctx
-    .db('users')
-    .where('loginToken', '=', args.token)
-    .andWhere('loginTokenExpiry', '>', 'now()')
+    .db('lt_user')
+    .where('login_token', '=', args.token)
+    .andWhere('login_token_expiry', '>', 'now()')
     .first();
 
-  console.log(user, args);
-
+  // console.log(user, args);
+  // console.log('USER', user);
   if (!user) {
-    console.log('!!!!! NO USER');
+    // console.log('!!!!! NO USER');
     return {
       code: 'noUser',
       success: false,
@@ -29,31 +29,43 @@ const confirmLogin = async (parent, args, ctx) => {
   }
 
   const [updatedUser] = await ctx
-    .db('users')
+    .db('lt_user')
     .update({
-      loginToken: null,
-      loginTokenExpiry: null,
+      login_token: null,
+      login_token_expiry: null,
     })
     .where({ email: user.email })
     .returning('*');
+
+  // get permissions
+  const permissions = await ctx
+    .db('permission')
+    .where({ user_id: updatedUser.id })
+    .select('role');
+
+  const allowedRoles = permissions.map(permission => permission.role);
+  allowedRoles.push('anonymous');
+
+  // figure out default role
+  const defaultRole = _.includes(allowedRoles, 'user') ? 'user' : 'anonymous';
 
   // 4. Generate JWT
   const token = jwt.sign(
     {
       userId: updatedUser.id,
       'https://hasura.io/jwt/claims': {
-        'x-hasura-allowed-roles': ['user'],
-        'x-hasura-default-role': 'user',
+        'x-hasura-allowed-roles': allowedRoles,
+        'x-hasura-default-role': defaultRole,
         'x-hasura-user-id': updatedUser.id,
-        // 'x-hasura-org-id': '123',
-        // 'x-hasura-custom': 'custom-value',
       },
     },
     process.env.APP_SECRET
   );
 
+  // console.log('JWT', token);
+
   // 5. Set the JWT cookie
-  ctx.response.cookie('token', token, {
+  ctx.res.cookie('token', token, {
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 365,
   });

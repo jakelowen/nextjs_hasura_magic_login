@@ -1,8 +1,5 @@
 const { HttpLink } = require('apollo-link-http');
 const { ApolloLink } = require('apollo-link');
-const { WebSocketLink } = require('apollo-link-ws');
-const { SubscriptionClient } = require('subscriptions-transport-ws');
-const ws = require('ws');
 const {
   makeRemoteExecutableSchema,
   introspectSchema,
@@ -12,23 +9,15 @@ const { split } = require('apollo-link');
 const { getMainDefinition } = require('apollo-utilities');
 const { setContext } = require('apollo-link-context');
 const jwt = require('jsonwebtoken');
-// const remoteSchema = require('../schema.json');
-
-// const { HASURA_GRAPHQL_ENGINE_AUTH_HOOK } = process.env;
-
-/* create an apollo-link instance that makes
-WS connection for subscriptions and
-HTTP connection for queries andm utations
-*/
 
 const makeHttpAndWsLink = (uri, headers) => {
-  // Create an http link:
   const httpLink = new HttpLink({
     uri,
     fetch,
     headers,
   });
 
+  // let authHeaders;
   const ContextLink = setContext((request, previousContext) => {
     const token =
       previousContext &&
@@ -39,8 +28,6 @@ const makeHttpAndWsLink = (uri, headers) => {
       previousContext.graphqlContext.request.cookies.token;
 
     if (token) {
-      // const { authorization } = previousContext.graphqlContext.request.headers;
-      // console.log('!!! AUTHORIZATION', authorization);
       return {
         headers: {
           authorization: `Bearer ${token}`,
@@ -59,28 +46,20 @@ const makeHttpAndWsLink = (uri, headers) => {
       },
       process.env.APP_SECRET
     );
-
     return {
       headers: {
         authorization: `Bearer ${anonToken}`,
       },
     };
   });
-  // console.log('!!!! httplink', JSON.stringify(httpLink, null, '\t'));
 
-  // Create a WebSocket link:
-  const wsLink = new WebSocketLink(
-    new SubscriptionClient(
-      uri,
-      {
-        reconnect: true,
-        connectionParams: {
-          headers,
-        },
-      },
-      ws
-    )
-  );
+  const wsLink = operation => {
+    const context = operation.getContext();
+    const {
+      graphqlContext: { secureWebsocketConnection },
+    } = context;
+    return secureWebsocketConnection.request(operation);
+  };
 
   // chose the link to use based on operation
   const link = split(
@@ -100,14 +79,11 @@ const makeHttpAndWsLink = (uri, headers) => {
 const getRemoteSchema = async (uri, headers, linkOverRide = null) => {
   const link = makeHttpAndWsLink(uri, headers);
   if (linkOverRide) {
-    // console.log('!!! remote schema', schema);
     return makeRemoteExecutableSchema({
       schema: await introspectSchema(linkOverRide),
       link,
     });
   }
-  // const schema = await introspectSchema(link);
-  // console.log('!!! remote schema', schema);
   return makeRemoteExecutableSchema({
     schema: await introspectSchema(link),
     link,
